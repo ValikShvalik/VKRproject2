@@ -1,5 +1,5 @@
 import React from "react";
-import { type Message } from "../data/messages";
+import type { Message } from "../types";
 import { isErrorMessage } from "../lib/utils";
 
 interface Props {

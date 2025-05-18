@@ -1,27 +1,36 @@
-import React, { useState } from "react";
-import { messages as initialMessages, type Message } from "./data/messages";
-import MessageTable from "./components/MessageTable";
-import MessageFilter from "./components/MessageFilter";
-import MessageChart from "./components/MessageChart";
-import ExportErrorsButton from "./components/ExportErrorsButton";
-import SignalStatus from "./components/SignalStatus";
+import React, { useState } from 'react';
+import ChartSelector from './components/ChartSelector';
+import PieChartTypeDistribution from './components/PieChartTypeDistribution';
+import BarChartSignalTimeline from './components/BarChartSignalTimeline';
+import HeatmapDeviceStatus from './components/HeatmapDeviceStatus';
+import WavifyEffect from './components/WaveSection';
 
-const App: React.FC = () => {
-  const [selectedTypes, setSelectedTypes] = useState<number[]>([0, 1, 2]);
-  const [data] = useState<Message[]>(initialMessages);
+function App() {
+  const [activeTab, setActiveTab] = useState('graph');
+  const [chartType, setChartType] = useState('pie');
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Анализ сообщений</h1>
-      <MessageFilter selectedTypes={selectedTypes} setSelectedTypes={setSelectedTypes} />
-      <MessageChart messages={data.filter(m => selectedTypes.includes(m.type))} />
-      <SignalStatus messages={data} />
-      <div className="my-6">
-        <ExportErrorsButton messages={data} />
+    <div className="min-h-screen bg-white p-4">
+      <div className="flex gap-4">
+        <button onClick={() => setActiveTab('graph')}>Графика</button>
+        <button onClick={() => setActiveTab('table')}>Таблица</button>
+        <button onClick={() => setActiveTab('logs')}>Логи</button>
       </div>
-      <MessageTable messages={data} filterTypes={selectedTypes} />
+
+      {activeTab === 'graph' && (
+        <>
+          <ChartSelector onSelect={setChartType} />
+          {chartType === 'pie' && <PieChartTypeDistribution />}
+          {chartType === 'bar' && <BarChartSignalTimeline />}
+          {chartType === 'heatmap' && <HeatmapDeviceStatus />}
+          <WavifyEffect trigger={chartType === 'pie'} />
+        </>
+      )}
+
+      {activeTab === 'table' && <div>Здесь будет таблица</div>}
+      {activeTab === 'logs' && <div>Здесь будут логи</div>}
     </div>
   );
-};
+}
 
 export default App;

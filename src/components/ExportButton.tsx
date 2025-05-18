@@ -1,6 +1,6 @@
 import React from "react";
 import * as XLSX from "xlsx";
-import { type Message } from "../data/messages";
+import type { Message } from "../types";
 import { isErrorMessage } from "../lib/utils";
 
 interface Props {
