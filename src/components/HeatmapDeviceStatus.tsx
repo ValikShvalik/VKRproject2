@@ -1,25 +1,38 @@
 import React from 'react';
 
-const HeatmapDeviceStatus: React.FC = () => {
+interface Props {
+  filters: Record<string, boolean>;
+}
+
+const HeatmapDeviceStatus: React.FC<Props> = ({ filters }) => {
+  const devices = [
+    { name: 'ПСК', channels: ['CH1', 'CH2', 'CH3'] },
+    { name: 'СКУ', channels: ['CH1', 'CH2', 'CH3'] },
+  ];
+
   return (
     <div className="flex justify-center">
-      <div className="grid grid-cols-4 gap-4">
-        {['ПСК-1', 'ПСК-2', 'СКУ-1', 'СКУ-2'].map((device) => (
-          <div key={device} className="p-4 border rounded bg-gray-100">
-            <h4 className="font-bold">{device}</h4>
-            <div className="flex gap-2 mt-2">
-              {[1, 2, 3].map((ch) => (
+      <div className="grid grid-cols-2 gap-6">
+        {devices.map((device) =>
+          device.channels.map((ch) => {
+            const key = `${device.name}_${ch}`;
+            if (!filters[key]) return null;
+
+            const statusOn = Math.random() > 0.5;
+
+            return (
+              <div key={key} className="p-4 border rounded bg-white shadow">
+                <h4 className="font-semibold mb-2">{device.name} - {ch}</h4>
                 <div
-                  key={ch}
-                  className={`w-8 h-8 rounded-full ${
-                    Math.random() > 0.5 ? 'bg-green-400' : 'bg-red-400'
+                  className={`w-8 h-8 rounded-full mx-auto ${
+                    statusOn ? 'bg-green-500' : 'bg-red-500'
                   }`}
-                  title={`Канал ${ch}`}
+                  title={`Статус: ${statusOn ? 'Вкл' : 'Выкл'}`}
                 />
-              ))}
-            </div>
-          </div>
-        ))}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

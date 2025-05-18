@@ -5,3 +5,5 @@ export type Message = {
   timestamp: string;
   isError: boolean;
 };
+
+export type ChartType = 'pie' | 'bar' | 'heatmap';

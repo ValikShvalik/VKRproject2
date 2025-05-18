@@ -8,3 +8,4 @@ export const messages: Message[] = [
   { id: 5, type: 0, text: 'Сообщение типа 0', timestamp: '2025-05-18T10:04:00', isError: true },
   { id: 6, type: 2, text: 'Сообщение типа 2', timestamp: '2025-05-18T10:05:00', isError: false },
 ];
+
