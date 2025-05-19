@@ -1,11 +1,10 @@
+// src/data/messages.ts
 import type { Message } from '../types';
 
-export const messages: Message[] = [
-  { id: 1, type: 0, text: 'Сообщение типа 0', timestamp: '2025-05-18T10:00:00', isError: false },
-  { id: 2, type: 1, text: 'Сообщение типа 1', timestamp: '2025-05-18T10:01:00', isError: true },
-  { id: 3, type: 2, text: 'Сообщение типа 2', timestamp: '2025-05-18T10:02:00', isError: false },
-  { id: 4, type: 1, text: 'Сообщение типа 1', timestamp: '2025-05-18T10:03:00', isError: false },
-  { id: 5, type: 0, text: 'Сообщение типа 0', timestamp: '2025-05-18T10:04:00', isError: true },
-  { id: 6, type: 2, text: 'Сообщение типа 2', timestamp: '2025-05-18T10:05:00', isError: false },
-];
-
+export const messages: Message[] = Array.from({ length: 5000 }, (_, i) => ({
+  id: i + 1,
+  type: String(Math.floor(Math.random() * 3)) as '0' | '1' | '2',
+  timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+  isError: Math.random() < 0.05,
+  text: `Сообщение #${i + 1}`, // добавлено поле text
+}));

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import type { ChartType } from './types';
-import  PieChartTypeDistribution  from './components/PieChartTypeDistribution';
-import  BarChartSignalTimeline  from './components/BarChartSignalTimeline';
-import  HeatmapDeviceStatus  from './components/HeatmapDeviceStatus';
-import { FilterControls} from './components/FilterControls';
-import  MessageTable  from './components/MessageTable';
+import PieChartTypeDistribution from './components/PieChartTypeDistribution';
+import BarChartSignalTimeline from './components/BarChartSignalTimeline';
+import HeatmapDeviceStatus from './components/HeatmapDeviceStatus';
+import { FilterControls } from './components/FilterControls';
+import MessageTable from './components/MessageTable';
 
 type Tab = 'chart' | 'table' | 'logs';
 
@@ -19,12 +19,12 @@ const App: React.FC = () => {
     errors: true,
     connect: true,
     disconnect: true,
-    PSK_CH1: true,
-    PSK_CH2: true,
-    PSK_CH3: true,
-    SKU_CH1: true,
-    SKU_CH2: true,
-    SKU_CH3: true,
+    ПСК_CH1: true,
+    ПСК_CH2: true,
+    ПСК_CH3: true,
+    СКУ_CH1: true,
+    СКУ_CH2: true,
+    СКУ_CH3: true,
   });
 
   const handleFilterChange = (key: string, value: boolean) => {
@@ -35,9 +35,15 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-100 p-4 relative">
       {/* Вкладки */}
       <div className="flex gap-4 mb-4">
-        <button onClick={() => setTab('chart')} className={tab === 'chart' ? 'font-bold' : ''}>Графика</button>
-        <button onClick={() => setTab('table')} className={tab === 'table' ? 'font-bold' : ''}>Таблица</button>
-        <button onClick={() => setTab('logs')} className={tab === 'logs' ? 'font-bold' : ''}>Логи</button>
+        <button onClick={() => setTab('chart')} className={tab === 'chart' ? 'font-bold' : ''}>
+          Графика
+        </button>
+        <button onClick={() => setTab('table')} className={tab === 'table' ? 'font-bold' : ''}>
+          Таблица
+        </button>
+        <button onClick={() => setTab('logs')} className={tab === 'logs' ? 'font-bold' : ''}>
+          Логи
+        </button>
       </div>
 
       {/* Контент */}
@@ -55,6 +61,7 @@ const App: React.FC = () => {
               <option value="heatmap">Тепловая карта</option>
             </select>
           </div>
+
           {/* Графики */}
           {chartType === 'pie' && <PieChartTypeDistribution filters={filters} />}
           {chartType === 'bar' && <BarChartSignalTimeline filters={filters} />}
@@ -72,13 +79,10 @@ const App: React.FC = () => {
       {tab === 'table' && (
         <>
           <MessageTable messages={[]} filterTypes={[]} />
-          {/* Здесь можно добавить фильтры таблицы под каждый тип графика */}
         </>
       )}
 
-      {tab === 'logs' && (
-        <div>Раздел логов (в разработке)</div>
-      )}
+      {tab === 'logs' && <div>Раздел логов (в разработке)</div>}
     </div>
   );
 };
