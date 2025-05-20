@@ -4,17 +4,17 @@ import { messages } from '../data/messages';
 
 interface BarChartSignalTimelineProps {
   filters: Record<string, boolean>;
+  startHour?: number; // начало диапазона
+  endHour?: number;   // конец диапазона
 }
 
-// Цвета для типов сообщений
+// Цвета и метки — без изменений
 const COLORS: Record<string, string> = {
-  errors: '#8b0000', // Ошибки — тёмно-красный
-  '0': '#8884d8',    // Нейтральные — фиолетовый
-  '1': '#82ca9d',    // Положительные — зелёный
-  '2': '#ffc658',    // Отрицательные — жёлтый
+  errors: '#8b0000',
+  '0': '#8884d8',
+  '1': '#82ca9d',
+  '2': '#ffc658',
 };
-
-// Метки для типов
 const TYPE_LABELS: Record<string, string> = {
   errors: 'Ошибки',
   '0': 'Нейтральные',
@@ -22,30 +22,33 @@ const TYPE_LABELS: Record<string, string> = {
   '2': 'Отрицательные',
 };
 
-const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters }) => {
+const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({
+  filters,
+  startHour = 8,  // значение по умолчанию
+  endHour = 19,   // значение по умолчанию
+}) => {
   const [hoveredHourIndex, setHoveredHourIndex] = useState<number | null>(null);
 
-  // Формируем 12 часов с 8:00 до 19:00
-  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => 8 + i), []);
+  // Формируем часы в диапазоне от startHour до endHour включительно
+  const hours = useMemo(
+    () => Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i),
+    [startHour, endHour]
+  );
 
-  // Фильтруем сообщения по времени и типу (включая ошибки)
   const filteredMessages = useMemo(() => {
     return messages.filter(msg => {
       const date = new Date(msg.timestamp);
       const hour = date.getHours();
-      if (hour < 8 || hour > 19) return false;
+      if (hour < startHour || hour > endHour) return false;
 
       if (msg.isError) return !!filters['errors'];
       return !!filters[msg.type.toString()];
     });
-  }, [filters]);
+  }, [filters, startHour, endHour]);
 
-  // Для каждого часа считаем количество сообщений по типам
   const countsByHourAndType = useMemo(() => {
     return hours.map(hour => {
-      // Сообщения для этого часа
       const msgsInHour = filteredMessages.filter(msg => new Date(msg.timestamp).getHours() === hour);
-      // Подсчет по типам
       const counts: Record<string, number> = { errors: 0, '0': 0, '1': 0, '2': 0 };
       msgsInHour.forEach(msg => {
         if (msg.isError) counts.errors += 1;
@@ -55,7 +58,6 @@ const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters
     });
   }, [filteredMessages, hours]);
 
-  // Максимальное количество для масштаба по Y
   const maxCount = Math.max(
     ...countsByHourAndType.map(c => Object.values(c.counts).reduce((a, b) => a + b, 0)),
     1
@@ -65,43 +67,28 @@ const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters
     return <p className="text-center mt-8 text-gray-500">Нет данных для отображения</p>;
   }
 
-  // Размеры SVG
+  // Размеры и отрисовка — без изменений
   const width = 700;
   const height = 350;
   const margin = { top: 40, right: 20, bottom: 60, left: 40 };
-
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
-
   const barWidth = chartWidth / countsByHourAndType.length;
 
   return (
     <>
       <h2 className="text-center font-bold text-lg mb-4">График анализа типов сообщений от времени</h2>
       <svg width={width} height={height} className="mx-auto bg-white rounded shadow">
-        {/* Ось Y */}
-        <line
-          x1={margin.left}
-          y1={margin.top}
-          x2={margin.left}
-          y2={height - margin.bottom}
-          stroke="#333"
-        />
-        {/* Ось X */}
-        <line
-          x1={margin.left}
-          y1={height - margin.bottom}
-          x2={width - margin.right}
-          y2={height - margin.bottom}
-          stroke="#333"
-        />
+        {/* Оси */}
+        <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#333" />
+        <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#333" />
 
-        {/* Столбцы — сложенная гистограмма */}
+        {/* Столбцы */}
         {countsByHourAndType.map(({ counts }, i) => {
           let yOffset = height - margin.bottom;
           return (
             <g key={i}>
-              {Object.entries(counts).map(([type, count], idx, arr) => {
+              {Object.entries(counts).map(([type, count]) => {
                 if (count === 0) return null;
                 const barHeight = (count / maxCount) * chartHeight;
                 yOffset -= barHeight;
@@ -123,7 +110,7 @@ const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters
           );
         })}
 
-        {/* Метки X (часы) */}
+        {/* Метки X */}
         {countsByHourAndType.map(({ hour }, i) => (
           <text
             key={hour}
@@ -144,13 +131,7 @@ const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters
           return (
             <g key={i}>
               <line x1={margin.left - 5} y1={y} x2={margin.left} y2={y} stroke="#333" />
-              <text
-                x={margin.left - 10}
-                y={y + 4}
-                fontSize={10}
-                textAnchor="end"
-                fill="#333"
-              >
+              <text x={margin.left - 10} y={y + 4} fontSize={10} textAnchor="end" fill="#333">
                 {value}
               </text>
             </g>
@@ -173,10 +154,7 @@ const BarChartSignalTimeline: React.FC<BarChartSignalTimelineProps> = ({ filters
               <div className="font-semibold mb-1">{hours[hoveredHourIndex]}:00</div>
               {Object.entries(countsByHourAndType[hoveredHourIndex].counts).map(([type, count]) => (
                 <div key={type} className="flex items-center gap-2">
-                  <div
-                    style={{ backgroundColor: COLORS[type] }}
-                    className="w-3 h-3 rounded-sm"
-                  />
+                  <div style={{ backgroundColor: COLORS[type] }} className="w-3 h-3 rounded-sm" />
                   <span>{TYPE_LABELS[type]}: {count}</span>
                 </div>
               ))}
@@ -202,10 +180,7 @@ interface LegendItemProps {
 
 const LegendItem: React.FC<LegendItemProps> = ({ color, label }) => (
   <div className="flex items-center space-x-2">
-    <div
-      style={{ backgroundColor: color }}
-      className="w-4 h-4 rounded-sm border border-gray-400"
-    />
+    <div style={{ backgroundColor: color }} className="w-4 h-4 rounded-sm border border-gray-400" />
     <span className="text-sm text-gray-700">{label}</span>
   </div>
 );

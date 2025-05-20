@@ -3,10 +3,12 @@ import type { Message } from '../types';
 
 interface Props {
   messages: Message[];
-  filterTypes: string[];
+  filterTypes: string[];          // фильтрация по типам
+  startHour?: number;             // фильтр по началу диапазона времени (опционально)
+  endHour?: number;               // фильтр по концу диапазона времени (опционально)
 }
 
-const PAGE_SIZE = 10; // сколько строк на странице
+const PAGE_SIZE = 10;
 
 const sortMessages = (msgs: Message[]) => {
   return msgs.slice().sort((a, b) => {
@@ -27,25 +29,37 @@ const errorRowStyle = {
 
 const typeIcons: Record<string, string> = {
   errors: '❌',
-  '0': '😐', // Нейтральный
-  '1': '👍', // Положительный
-  '2': '👎', // Отрицательный
+  '0': '😐',
+  '1': '👍',
+  '2': '👎',
 };
 
-const MessageTable: React.FC<Props> = ({ messages, filterTypes }) => {
+const MessageTable: React.FC<Props> = ({ messages, filterTypes, startHour, endHour }) => {
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const filtered = messages.filter(m => {
+    // Фильтрация по типу
     if (m.isError) {
-      return filterTypes.includes('errors');
+      if (!filterTypes.includes('errors')) return false;
+    } else {
+      if (!filterTypes.includes(m.type.toString())) return false;
     }
-    return filterTypes.includes(m.type.toString());
+
+    // Фильтрация по времени (если заданы startHour и endHour)
+    if (startHour !== undefined && endHour !== undefined) {
+      const date = new Date(m.timestamp);
+      const hour = date.getHours();
+      if (hour < startHour || hour > endHour) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   const sortedMessages = sortMessages(filtered);
 
-  // Пагинация
   const pageCount = Math.max(1, Math.ceil(sortedMessages.length / PAGE_SIZE));
   const paginatedMessages = sortedMessages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -115,7 +129,6 @@ const MessageTable: React.FC<Props> = ({ messages, filterTypes }) => {
         </tbody>
       </table>
 
-      {/* Пагинация */}
       <div className="mt-3 flex justify-center items-center gap-4">
         <button
           onClick={() => setPage(p => Math.max(1, p - 1))}
