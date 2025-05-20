@@ -6,6 +6,7 @@ interface Props {
   filterTypes: string[];          // фильтрация по типам
   startHour?: number;             // фильтр по началу диапазона времени (опционально)
   endHour?: number;               // фильтр по концу диапазона времени (опционально)
+  showErrorSummary?: boolean;    // флаг для отображения таблицы ошибок по задачам
 }
 
 const PAGE_SIZE = 10;
@@ -34,19 +35,17 @@ const typeIcons: Record<string, string> = {
   '2': '👎',
 };
 
-const MessageTable: React.FC<Props> = ({ messages, filterTypes, startHour, endHour }) => {
+const MessageTable: React.FC<Props> = ({ messages, filterTypes, startHour, endHour, showErrorSummary }) => {
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const filtered = messages.filter(m => {
-    // Фильтрация по типу
     if (m.isError) {
       if (!filterTypes.includes('errors')) return false;
     } else {
       if (!filterTypes.includes(m.type.toString())) return false;
     }
 
-    // Фильтрация по времени (если заданы startHour и endHour)
     if (startHour !== undefined && endHour !== undefined) {
       const date = new Date(m.timestamp);
       const hour = date.getHours();
@@ -58,8 +57,41 @@ const MessageTable: React.FC<Props> = ({ messages, filterTypes, startHour, endHo
     return true;
   });
 
-  const sortedMessages = sortMessages(filtered);
+  if (showErrorSummary) {
+    const errorCounts: Record<number, number> = {};
+    filtered.forEach(msg => {
+      if (msg.isError) {
+        errorCounts[msg.taskNumber] = (errorCounts[msg.taskNumber] || 0) + 1;
+      }
+    });
 
+    const rows = Object.entries(errorCounts)
+      .map(([taskNumber, count]) => ({ taskNumber: Number(taskNumber), count }))
+      .sort((a, b) => a.taskNumber - b.taskNumber);
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-300 text-sm">
+          <thead className="bg-gray-200 sticky top-0 z-10">
+            <tr>
+              <th className="border border-gray-300 p-2">Номер задачи</th>
+              <th className="border border-gray-300 p-2">Количество ошибок</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ taskNumber, count }) => (
+              <tr key={taskNumber} className="odd:bg-white even:bg-gray-50">
+                <td className="border border-gray-300 p-2">{taskNumber}</td>
+                <td className="border border-gray-300 p-2">{count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  const sortedMessages = sortMessages(filtered);
   const pageCount = Math.max(1, Math.ceil(sortedMessages.length / PAGE_SIZE));
   const paginatedMessages = sortedMessages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 

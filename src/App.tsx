@@ -8,7 +8,7 @@ import MessageTable from './components/MessageTable';
 import { messages } from './data/messages';
 
 type Tab = 'chart' | 'table' | 'logs';
-type AnalyticsMode = 'pie' | 'bar';
+type AnalyticsMode = 'pie' | 'bar' | 'line';
 
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>('chart');
@@ -86,7 +86,15 @@ const App: React.FC = () => {
         ))}
       </div>
 
-      {/* Графики */}
+      {/* Заголовок и описание аналитики */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-1">Анализ обработки приборов СКУ и ПСК</h1>
+        <p className="text-gray-600">
+          Здесь отображается аналитика запуска и работы приборов систем контроля управления (СКУ) и подсистем контроля (ПСК).
+        </p>
+      </div>
+
+      {/* Основной контент */}
       {tab === 'chart' && (
         <div>
           <div className="mb-4">
@@ -136,18 +144,16 @@ const App: React.FC = () => {
           )}
 
           {chartType === 'line' && (
-            <>
-              <FilterControls
-                filters={{
-                  startHour: lineStartHour,
-                  endHour: lineEndHour,
-                  minTask,
-                  maxTask,
-                }}
-                onChange={handleLineFilterChange}
-                mode="line"
-              />
-            </>
+            <FilterControls
+              filters={{
+                startHour: lineStartHour,
+                endHour: lineEndHour,
+                minTask,
+                maxTask,
+              }}
+              onChange={handleLineFilterChange}
+              mode="line"
+            />
           )}
 
           {/* Графики */}
@@ -175,6 +181,7 @@ const App: React.FC = () => {
             >
               <option value="pie">Круговая диаграмма</option>
               <option value="bar">Гистограмма</option>
+              <option value="line">Линейный график</option>
             </select>
           </div>
 

@@ -13,9 +13,18 @@ const FilterControls: React.FC<FilterControlsProps> = ({ filters, onChange, mode
 
   const [startHour, setStartHour] = useState<number>(filters.startHour ?? 8);
   const [endHour, setEndHour] = useState<number>(filters.endHour ?? 19);
-
   const [minTask, setMinTask] = useState<number>(filters.minTask ?? 0);
   const [maxTask, setMaxTask] = useState<number>(filters.maxTask ?? 100);
+
+  // Принудительно фильтруем только ошибки в режиме line
+  useEffect(() => {
+    if (mode === 'line') {
+      onChange('errors', true);
+      onChange('0', false);
+      onChange('1', false);
+      onChange('2', false);
+    }
+  }, [mode]);
 
   useEffect(() => {
     setStartHour(filters.startHour ?? 8);
@@ -76,9 +85,9 @@ const FilterControls: React.FC<FilterControlsProps> = ({ filters, onChange, mode
           aria-orientation="vertical"
           aria-labelledby="filter-menu"
         >
-          {(mode === 'types' || mode === 'timeline') && (
+          {(mode === 'types' || mode === 'timeline' || mode === 'line') && (
             <>
-              {mode === 'timeline' && (
+              {(mode === 'timeline' || mode === 'line') && (
                 <>
                   <div className="mb-2 font-semibold">Диапазон времени (часы):</div>
                   <div className="flex gap-2 items-center mb-2">
@@ -110,82 +119,58 @@ const FilterControls: React.FC<FilterControlsProps> = ({ filters, onChange, mode
                 </>
               )}
 
-              <div className="mb-2 font-semibold">Типы сообщений:</div>
-              {['errors', '2', '1', '0'].map((key) => (
-                <label key={key} className="flex items-center gap-2 cursor-pointer mb-1">
-                  <input
-                    type="checkbox"
-                    checked={filters[key]}
-                    onChange={(e) => onChange(key, e.target.checked)}
-                  />
-                  {{
-                    errors: 'Ошибки',
-                    '2': 'Отрицательные',
-                    '1': 'Положительные',
-                    '0': 'Нейтральные',
-                  }[key]}
-                </label>
-              ))}
-            </>
-          )}
+              {mode === 'line' && (
+                <>
+                  <div className="mb-2 font-semibold">Диапазон задач:</div>
+                  <div className="flex gap-2 items-center">
+                    <label>
+                      От:
+                      <input
+                        type="number"
+                        value={minTask}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          if (!isNaN(val)) setMinTask(val);
+                        }}
+                        className="ml-1 border rounded p-1 w-20"
+                      />
+                    </label>
+                    <label>
+                      До:
+                      <input
+                        type="number"
+                        value={maxTask}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          if (!isNaN(val)) setMaxTask(val);
+                        }}
+                        className="ml-1 border rounded p-1 w-20"
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
 
-          {mode === 'line' && (
-            <>
-              <div className="mb-2 font-semibold">Диапазон времени (часы):</div>
-              <div className="flex gap-2 items-center mb-2">
-                <label>
-                  С:
-                  <select
-                    value={startHour}
-                    onChange={e => setStartHour(Number(e.target.value))}
-                    className="ml-1 border rounded p-1"
-                  >
-                    {hours.map(h => (
-                      <option key={h} value={h}>{h}:00</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  По:
-                  <select
-                    value={endHour}
-                    onChange={e => setEndHour(Number(e.target.value))}
-                    className="ml-1 border rounded p-1"
-                  >
-                    {hours.map(h => (
-                      <option key={h} value={h}>{h}:00</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="mb-2 font-semibold">Диапазон задач:</div>
-              <div className="flex gap-2 items-center">
-                <label>
-                  От:
-                  <input
-                    type="number"
-                    value={minTask}
-                    onChange={e => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) setMinTask(val);
-                    }}
-                    className="ml-1 border rounded p-1 w-20"
-                  />
-                </label>
-                <label>
-                  До:
-                  <input
-                    type="number"
-                    value={maxTask}
-                    onChange={e => {
-                      const val = Number(e.target.value);
-                      if (!isNaN(val)) setMaxTask(val);
-                    }}
-                    className="ml-1 border rounded p-1 w-20"
-                  />
-                </label>
-              </div>
+              {mode !== 'line' && (
+                <>
+                  <div className="mb-2 font-semibold">Типы сообщений:</div>
+                  {['errors', '2', '1', '0'].map((key) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer mb-1">
+                      <input
+                        type="checkbox"
+                        checked={filters[key]}
+                        onChange={(e) => onChange(key, e.target.checked)}
+                      />
+                      {{
+                        errors: 'Ошибки',
+                        '2': 'Отрицательные',
+                        '1': 'Положительные',
+                        '0': 'Нейтральные',
+                      }[key]}
+                    </label>
+                  ))}
+                </>
+              )}
             </>
           )}
         </div>
