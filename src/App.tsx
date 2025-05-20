@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { ChartType } from './types';
 import PieChartTypeDistribution from './components/PieChartTypeDistribution';
 import BarChartSignalTimeline from './components/BarChartSignalTimeline';
-import HeatmapDeviceStatus from './components/HeatmapDeviceStatus';
+import LineChartErrorByTask from './components/LineChartErrorByTask';
 import FilterControls from './components/FilterControls';
 import MessageTable from './components/MessageTable';
 import { messages } from './data/messages';
@@ -13,65 +13,82 @@ type AnalyticsMode = 'pie' | 'bar';
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>('chart');
   const [chartType, setChartType] = useState<ChartType>('pie');
-  const [analyticsMode, setAnalyticsMode] = useState<AnalyticsMode>('pie'); // что анализируем для таблицы
+  const [analyticsMode, setAnalyticsMode] = useState<AnalyticsMode>('pie');
 
-  // Фильтры для круговой диаграммы
   const [pieFilters, setPieFilters] = useState<Record<string, boolean>>({
     errors: true,
     '0': true,
     '1': true,
     '2': true,
   });
-
-  // Фильтры для гистограммы + фильтр по времени
   const [barFilters, setBarFilters] = useState<Record<string, boolean>>({
     errors: true,
     '0': true,
     '1': true,
     '2': true,
   });
-  const [startHour, setStartHour] = useState<number>(0);
-  const [endHour, setEndHour] = useState<number>(23);
 
-  // Обработчики смены фильтров
-  const handlePieFilterChange = (key: string, value: boolean) => {
+  const [startHour, setStartHour] = useState<number>(8);
+  const [endHour, setEndHour] = useState<number>(19);
+
+  // Линейный график — только ошибки
+  const [lineStartHour, setLineStartHour] = useState<number>(0);
+  const [lineEndHour, setLineEndHour] = useState<number>(24);
+  const [minTask, setMinTask] = useState<number>(0);
+  const [maxTask, setMaxTask] = useState<number>(100);
+
+  const handlePieFilterChange = (key: string, value: any) => {
     setPieFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleBarFilterChange = (key: string, value: boolean) => {
+  const handleBarFilterChange = (key: string, value: any) => {
     setBarFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // Обработчик выбора аналитики для таблицы
-  const handleAnalyticsModeChange = (mode: AnalyticsMode) => {
-    setAnalyticsMode(mode);
+  const handleLineFilterChange = (key: string, value: any) => {
+    if (key === 'startHour') setLineStartHour(value);
+    else if (key === 'endHour') setLineEndHour(value);
+    else if (key === 'minTask') setMinTask(value);
+    else if (key === 'maxTask') setMaxTask(value);
   };
 
-  // Фильтры и параметры для таблицы зависят от выбранного режима аналитики
-  const filterTypesForTable =
-    analyticsMode === 'pie'
-      ? Object.entries(pieFilters).filter(([, v]) => v).map(([k]) => k)
-      : Object.entries(barFilters).filter(([, v]) => v).map(([k]) => k);
+  // Выбранные типы для таблицы
+  const filterTypesForTable = useMemo(() => {
+    const filters = analyticsMode === 'pie' ? pieFilters : barFilters;
+    return Object.entries(filters)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+  }, [analyticsMode, pieFilters, barFilters]);
+
+  // Отфильтрованные сообщения для линейного графика
+  const filteredLineMessages = useMemo(() => {
+    return messages.filter(msg => {
+      const hour = new Date(msg.timestamp).getHours();
+      return (
+        msg.isError &&
+        hour >= lineStartHour &&
+        hour <= lineEndHour &&
+        msg.taskNumber !== undefined &&
+        msg.taskNumber >= minTask &&
+        msg.taskNumber <= maxTask
+      );
+    });
+  }, [lineStartHour, lineEndHour, minTask, maxTask]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 relative">
       {/* Вкладки */}
       <div className="flex gap-4 mb-4">
-        <button onClick={() => setTab('chart')} className={tab === 'chart' ? 'font-bold' : ''}>
-          Графика
-        </button>
-        <button onClick={() => setTab('table')} className={tab === 'table' ? 'font-bold' : ''}>
-          Таблица
-        </button>
-        <button onClick={() => setTab('logs')} className={tab === 'logs' ? 'font-bold' : ''}>
-          Логи
-        </button>
+        {(['chart', 'table', 'logs'] as Tab[]).map(t => (
+          <button key={t} onClick={() => setTab(t)} className={tab === t ? 'font-bold' : ''}>
+            {t === 'chart' ? 'Графика' : t === 'table' ? 'Таблица' : 'Логи'}
+          </button>
+        ))}
       </div>
 
       {/* Графики */}
       {tab === 'chart' && (
         <div>
-          {/* Выбор графика */}
           <div className="mb-4">
             <select
               value={chartType}
@@ -80,16 +97,17 @@ const App: React.FC = () => {
             >
               <option value="pie">Круговая диаграмма</option>
               <option value="bar">Гистограмма</option>
-              <option value="heatmap">Тепловая карта</option>
+              <option value="line">Линейный график ошибок</option>
             </select>
           </div>
 
-          {/* Фильтры */}
-          {chartType === 'pie' && <FilterControls filters={pieFilters} onChange={handlePieFilterChange} />}
+          {chartType === 'pie' && (
+            <FilterControls filters={pieFilters} onChange={handlePieFilterChange} mode="types" />
+          )}
+
           {chartType === 'bar' && (
-            <div>
-              <FilterControls filters={barFilters} onChange={handleBarFilterChange} />
-              {/* Фильтр по времени */}
+            <>
+              <FilterControls filters={barFilters} onChange={handleBarFilterChange} mode="types" />
               <div className="mt-2 flex items-center gap-2">
                 <label>
                   Время с:
@@ -98,13 +116,7 @@ const App: React.FC = () => {
                     min={0}
                     max={23}
                     value={startHour}
-                    onChange={e => {
-                      let val = Number(e.target.value);
-                      if (val < 0) val = 0;
-                      if (val > 23) val = 23;
-                      if (val > endHour) val = endHour;
-                      setStartHour(val);
-                    }}
+                    onChange={e => setStartHour(Math.min(Math.max(0, Number(e.target.value)), endHour))}
                     className="ml-1 w-14 border rounded p-1"
                   />
                 </label>
@@ -115,38 +127,50 @@ const App: React.FC = () => {
                     min={0}
                     max={23}
                     value={endHour}
-                    onChange={e => {
-                      let val = Number(e.target.value);
-                      if (val < 0) val = 0;
-                      if (val > 23) val = 23;
-                      if (val < startHour) val = startHour;
-                      setEndHour(val);
-                    }}
+                    onChange={e => setEndHour(Math.max(Math.min(23, Number(e.target.value)), startHour))}
                     className="ml-1 w-14 border rounded p-1"
                   />
                 </label>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Собственно графики */}
+          {chartType === 'line' && (
+            <>
+              <FilterControls
+                filters={{
+                  startHour: lineStartHour,
+                  endHour: lineEndHour,
+                  minTask,
+                  maxTask,
+                }}
+                onChange={handleLineFilterChange}
+                mode="line"
+              />
+            </>
+          )}
+
+          {/* Графики */}
           {chartType === 'pie' && <PieChartTypeDistribution filters={pieFilters} />}
           {chartType === 'bar' && (
-            <BarChartSignalTimeline filters={barFilters} startHour={startHour} endHour={endHour} />
+            <BarChartSignalTimeline
+              filters={barFilters}
+              startHour={startHour}
+              endHour={endHour}
+            />
           )}
-          {chartType === 'heatmap' && <HeatmapDeviceStatus filters={pieFilters} />}
+          {chartType === 'line' && <LineChartErrorByTask messages={filteredLineMessages} />}
         </div>
       )}
 
       {/* Таблица */}
       {tab === 'table' && (
         <div>
-          {/* Переключатель, какую аналитику показывать */}
           <div className="mb-4">
             <label className="mr-4 font-semibold">Выберите аналитику для таблицы:</label>
             <select
               value={analyticsMode}
-              onChange={e => handleAnalyticsModeChange(e.target.value as AnalyticsMode)}
+              onChange={e => setAnalyticsMode(e.target.value as AnalyticsMode)}
               className="border rounded p-1"
             >
               <option value="pie">Круговая диаграмма</option>
@@ -154,12 +178,13 @@ const App: React.FC = () => {
             </select>
           </div>
 
-          {/* Фильтры для выбранной аналитики */}
-          {analyticsMode === 'pie' && <FilterControls filters={pieFilters} onChange={handlePieFilterChange} />}
+          {analyticsMode === 'pie' && (
+            <FilterControls filters={pieFilters} onChange={handlePieFilterChange} mode="types" />
+          )}
+
           {analyticsMode === 'bar' && (
-            <div>
-              <FilterControls filters={barFilters} onChange={handleBarFilterChange} />
-              {/* Фильтр по времени */}
+            <>
+              <FilterControls filters={barFilters} onChange={handleBarFilterChange} mode="types" />
               <div className="mt-2 flex items-center gap-2">
                 <label>
                   Время с:
@@ -168,13 +193,7 @@ const App: React.FC = () => {
                     min={0}
                     max={23}
                     value={startHour}
-                    onChange={e => {
-                      let val = Number(e.target.value);
-                      if (val < 0) val = 0;
-                      if (val > 23) val = 23;
-                      if (val > endHour) val = endHour;
-                      setStartHour(val);
-                    }}
+                    onChange={e => setStartHour(Math.min(Math.max(0, Number(e.target.value)), endHour))}
                     className="ml-1 w-14 border rounded p-1"
                   />
                 </label>
@@ -185,21 +204,14 @@ const App: React.FC = () => {
                     min={0}
                     max={23}
                     value={endHour}
-                    onChange={e => {
-                      let val = Number(e.target.value);
-                      if (val < 0) val = 0;
-                      if (val > 23) val = 23;
-                      if (val < startHour) val = startHour;
-                      setEndHour(val);
-                    }}
+                    onChange={e => setEndHour(Math.max(Math.min(23, Number(e.target.value)), startHour))}
                     className="ml-1 w-14 border rounded p-1"
                   />
                 </label>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Таблица сообщений с фильтрацией по выбранным фильтрам */}
           <MessageTable
             messages={messages}
             filterTypes={filterTypesForTable}

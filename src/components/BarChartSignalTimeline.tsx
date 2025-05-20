@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import type { Message } from '../types';
 import { messages } from '../data/messages';
 
 interface BarChartSignalTimelineProps {
